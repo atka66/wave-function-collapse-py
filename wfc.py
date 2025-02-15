@@ -2,22 +2,22 @@
 import random
 import tkinter as tk
 
-# directions: 0 - UP; 1 - RIGHT; 2 - DOWN; 3 - LEFT
+# direction idxs: 0 - UP; 1 - RIGHT; 2 - DOWN; 3 - LEFT
 
 TILE_DEFS = [
-    {"src": "img/tile_0.png", "neighbors": []},
-    {"src": "img/tile_1.png", "neighbors": [0, 2]},
-    {"src": "img/tile_2.png", "neighbors": [1, 3]},
-    {"src": "img/tile_3.png", "neighbors": [0, 1]},
-    {"src": "img/tile_4.png", "neighbors": [1, 2]},
-    {"src": "img/tile_5.png", "neighbors": [2, 3]},
-    {"src": "img/tile_6.png", "neighbors": [0, 3]},
-    {"src": "img/tile_7.png", "neighbors": [0, 1, 2, 3]},
+    {"src": "img/tile_0.png", "neighbours": [False, False, False, False]},
+    {"src": "img/tile_1.png", "neighbours": [True, False, True, False]},
+    {"src": "img/tile_2.png", "neighbours": [False, True, False, True]},
+    {"src": "img/tile_3.png", "neighbours": [True, True, False, False]},
+    {"src": "img/tile_4.png", "neighbours": [False, True, True, False]},
+    {"src": "img/tile_5.png", "neighbours": [False, False, True, True]},
+    {"src": "img/tile_6.png", "neighbours": [True, False, False, True]},
+    {"src": "img/tile_7.png", "neighbours": [True, True, True, True]},
 ]
 
 MAP = []
-MAP_WIDTH = 20
-MAP_HEIGHT = 20
+MAP_WIDTH = 40
+MAP_HEIGHT = 40
 TILE_SIZE = 16
 
 def resetMap(root, canvas):
@@ -30,15 +30,29 @@ def resetMap(root, canvas):
     print("map has been reset")
     updateCanvas(root, canvas)
 
-def adjustNeighbour(x, y):
-    # above neighbour
-    pass
-
 def collapseAt(x, y, value):
     MAP[y][x]["values"] = value
     MAP[y][x]["collapsed"] = True
-    if y - 1 >= 0:
-        adjustNeighbour(x, y - 1)
+
+    expectedAbove = TILE_DEFS[value]["neighbours"][0]
+    if y - 1 >= 0 and not MAP[y - 1][x]["collapsed"]:
+        forbiddenAboveTiles = [idx for idx, e in enumerate(TILE_DEFS) if e["neighbours"][2] != expectedAbove]
+        MAP[y - 1][x]["values"] = [e for e in MAP[y - 1][x]["values"] if e not in forbiddenAboveTiles]
+
+    expectedBelow = TILE_DEFS[value]["neighbours"][2]
+    if y + 1 < MAP_HEIGHT and not MAP[y + 1][x]["collapsed"]:
+        forbiddenBelowTiles = [idx for idx, e in enumerate(TILE_DEFS) if e["neighbours"][0] != expectedBelow]
+        MAP[y + 1][x]["values"] = [e for e in MAP[y + 1][x]["values"] if e not in forbiddenBelowTiles]
+    
+    expectedRight = TILE_DEFS[value]["neighbours"][1]
+    if x + 1 < MAP_WIDTH and not MAP[y][x + 1]["collapsed"]:
+        forbiddenRightTiles = [idx for idx, e in enumerate(TILE_DEFS) if e["neighbours"][3] != expectedRight]
+        MAP[y][x + 1]["values"] = [e for e in MAP[y][x + 1]["values"] if e not in forbiddenRightTiles]
+    
+    expectedLeft = TILE_DEFS[value]["neighbours"][3]
+    if x - 1 >= MAP_WIDTH and not MAP[y][x - 1]["collapsed"]:
+        forbiddenLeftTiles = [idx for idx, e in enumerate(TILE_DEFS) if e["neighbours"][1] != expectedLeft]
+        MAP[y][x - 1]["values"] = [e for e in MAP[y][x - 1]["values"] if e not in forbiddenLeftTiles]
 
 def findLeastValuesPos():
     posX = -1
@@ -99,7 +113,7 @@ def updateCanvas(root, canvas):
     root.update()
 
 def buildCanvas(frame):
-    canvas = tk.Canvas(frame, height=MAP_WIDTH * TILE_SIZE, width=MAP_HEIGHT * TILE_SIZE)
+    canvas = tk.Canvas(frame, height=MAP_HEIGHT * TILE_SIZE, width=MAP_WIDTH * TILE_SIZE)
     canvas.pack()
     return canvas
 
