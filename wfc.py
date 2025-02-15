@@ -13,6 +13,10 @@ TILE_DEFS = [
     {"src": "img/tile_5.png", "neighbours": [False, False, True, True]},
     {"src": "img/tile_6.png", "neighbours": [True, False, False, True]},
     {"src": "img/tile_7.png", "neighbours": [True, True, True, True]},
+    {"src": "img/tile_8.png", "neighbours": [True, True, False, True]},
+    {"src": "img/tile_9.png", "neighbours": [True, True, True, False]},
+    {"src": "img/tile_10.png", "neighbours": [False, True, True, True]},
+    {"src": "img/tile_11.png", "neighbours": [True, False, True, True]},
 ]
 
 MAP = []
@@ -27,6 +31,8 @@ def resetMap(root, canvas):
         for _ in range(MAP_WIDTH):
             mapRow.append({"collapsed": False, "values": [i for i in range(len(TILE_DEFS))]})
         MAP.append(mapRow)
+    
+    collapseAt(random.randrange(MAP_WIDTH), random.randrange(MAP_HEIGHT), random.randrange(len(TILE_DEFS)))
     print("map has been reset")
     updateCanvas(root, canvas)
 
@@ -50,28 +56,29 @@ def collapseAt(x, y, value):
         MAP[y][x + 1]["values"] = [e for e in MAP[y][x + 1]["values"] if e not in forbiddenRightTiles]
     
     expectedLeft = TILE_DEFS[value]["neighbours"][3]
-    if x - 1 >= MAP_WIDTH and not MAP[y][x - 1]["collapsed"]:
+    if x - 1 >= 0 and not MAP[y][x - 1]["collapsed"]:
         forbiddenLeftTiles = [idx for idx, e in enumerate(TILE_DEFS) if e["neighbours"][1] != expectedLeft]
         MAP[y][x - 1]["values"] = [e for e in MAP[y][x - 1]["values"] if e not in forbiddenLeftTiles]
 
 def findLeastValuesPos():
-    posX = -1
-    posY = -1
+    pos = [-1, -1]
     leastValuesN = len(TILE_DEFS) + 1
+    withSameValues = []
     for i in range(MAP_HEIGHT):
         for j in range(MAP_WIDTH):
             cell = MAP[i][j]
             if not cell["collapsed"]:
                 valuesN = len(cell["values"])
-                if valuesN < leastValuesN:
-                    posX = j
-                    posY = i
+                if valuesN == leastValuesN:
+                    withSameValues.append([j, i])
+                elif valuesN < leastValuesN:
                     leastValuesN = valuesN
+                    withSameValues = [[j, i]]
     
-    if posX < 0 or posY < 0:
+    if len(withSameValues) < 1:
         return []
     
-    return [posX, posY]
+    return random.choice(withSameValues)
 
 def isMapCollapsed():
     for i in range(MAP_HEIGHT):
@@ -91,9 +98,10 @@ def collapseMap(root, canvas):
         x = pos[0]
         y = pos[1]
         collapseAt(x, y, random.choice(MAP[y][x]["values"]))
+        updateCanvasTile(canvas, y, x)
+        root.update()
 
     print("map has collapsed")
-    updateCanvas(root, canvas)
 
 def buildButtons(frame, root, canvas):
     resetButton = tk.Button(frame, text="Reset", width=10, command=lambda: resetMap(root, canvas))
@@ -101,14 +109,17 @@ def buildButtons(frame, root, canvas):
     collapseButton = tk.Button(frame, text="Collapse", width=10, command=lambda: collapseMap(root, canvas))
     collapseButton.pack()
 
+def updateCanvasTile(canvas, i, j):
+    image = TILE_DEFS[MAP[i][j]["values"]]["img"]
+    canvas.create_image(j * TILE_SIZE, i * TILE_SIZE, image=image, anchor=tk.NW)
+
 def updateCanvas(root, canvas):
     for i in range(MAP_HEIGHT):
         for j in range(MAP_WIDTH):
             if not MAP[i][j]["collapsed"]:
                 canvas.create_rectangle(j * TILE_SIZE, i * TILE_SIZE, ((j + 1) * TILE_SIZE) - 1, ((i + 1) * TILE_SIZE) - 1, fill="gray", outline="white")
             else:
-                image = TILE_DEFS[MAP[i][j]["values"]]["img"]
-                canvas.create_image(j * TILE_SIZE, i * TILE_SIZE, image=image, anchor=tk.NW)
+                updateCanvasTile(canvas, i, j)
             
     root.update()
 
