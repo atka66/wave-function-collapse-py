@@ -8,25 +8,12 @@ from PIL import Image, ImageTk
 
 ATLAS_PATH = "img/atlas_ts1/ts_dirt.png"
 
-TILE_DEFS = [
-    {"src": "img/ts1/tile_0.png", "neighbours": [False, False, False, False]},
-    {"src": "img/ts1/tile_1.png", "neighbours": [True, False, True, False]},
-    {"src": "img/ts1/tile_2.png", "neighbours": [False, True, False, True]},
-    {"src": "img/ts1/tile_3.png", "neighbours": [True, True, False, False]},
-    {"src": "img/ts1/tile_4.png", "neighbours": [False, True, True, False]},
-    {"src": "img/ts1/tile_5.png", "neighbours": [False, False, True, True]},
-    {"src": "img/ts1/tile_6.png", "neighbours": [True, False, False, True]},
-    {"src": "img/ts1/tile_7.png", "neighbours": [True, True, True, True]},
-    {"src": "img/ts1/tile_8.png", "neighbours": [True, True, False, True]},
-    {"src": "img/ts1/tile_9.png", "neighbours": [True, True, True, False]},
-    {"src": "img/ts1/tile_10.png", "neighbours": [False, True, True, True]},
-    {"src": "img/ts1/tile_11.png", "neighbours": [True, False, True, True]},
-]
+TILE_DEFS = []
 
 MAP = []
 MAP_WIDTH = 20
 MAP_HEIGHT = 20
-TILE_SIZE = 16
+TILE_SIZE = 32
 
 def resetMap():
     now = datetime.now()
@@ -34,7 +21,7 @@ def resetMap():
     for _ in range(MAP_HEIGHT):
         mapRow = []
         for _ in range(MAP_WIDTH):
-            mapRow.append({"collapsed": False, "values": [i for i in range(len(TILE_DEFS))]})
+            mapRow.append({"collapsed": '', "values": [i for i in range(len(TILE_DEFS))]})
         MAP.append(mapRow)
     
     collapseAt(random.randrange(MAP_WIDTH), random.randrange(MAP_HEIGHT), random.randrange(len(TILE_DEFS)))
@@ -45,24 +32,24 @@ def resetMap():
 
 def collapseAt(x, y, value):
     MAP[y][x]["values"] = value
-    MAP[y][x]["collapsed"] = True
+    MAP[y][x]["collapsed"] = 'A'
 
-    expectedAbove = TILE_DEFS[value]["neighbours"][0]
+    expectedAbove = TILE_DEFS[value]["neighbours"][0][::-1]
     if y - 1 >= 0 and not MAP[y - 1][x]["collapsed"]:
         forbiddenAboveTiles = [idx for idx, e in enumerate(TILE_DEFS) if e["neighbours"][2] != expectedAbove]
         MAP[y - 1][x]["values"] = [e for e in MAP[y - 1][x]["values"] if e not in forbiddenAboveTiles]
 
-    expectedBelow = TILE_DEFS[value]["neighbours"][2]
+    expectedBelow = TILE_DEFS[value]["neighbours"][2][::-1]
     if y + 1 < MAP_HEIGHT and not MAP[y + 1][x]["collapsed"]:
         forbiddenBelowTiles = [idx for idx, e in enumerate(TILE_DEFS) if e["neighbours"][0] != expectedBelow]
         MAP[y + 1][x]["values"] = [e for e in MAP[y + 1][x]["values"] if e not in forbiddenBelowTiles]
     
-    expectedRight = TILE_DEFS[value]["neighbours"][1]
+    expectedRight = TILE_DEFS[value]["neighbours"][1][::-1]
     if x + 1 < MAP_WIDTH and not MAP[y][x + 1]["collapsed"]:
         forbiddenRightTiles = [idx for idx, e in enumerate(TILE_DEFS) if e["neighbours"][3] != expectedRight]
         MAP[y][x + 1]["values"] = [e for e in MAP[y][x + 1]["values"] if e not in forbiddenRightTiles]
     
-    expectedLeft = TILE_DEFS[value]["neighbours"][3]
+    expectedLeft = TILE_DEFS[value]["neighbours"][3][::-1]
     if x - 1 >= 0 and not MAP[y][x - 1]["collapsed"]:
         forbiddenLeftTiles = [idx for idx, e in enumerate(TILE_DEFS) if e["neighbours"][1] != expectedLeft]
         MAP[y][x - 1]["values"] = [e for e in MAP[y][x - 1]["values"] if e not in forbiddenLeftTiles]
@@ -90,9 +77,9 @@ def findLeastValuesPos():
 def isMapCollapsed():
     for i in range(MAP_HEIGHT):
         for j in range(MAP_WIDTH):
-            if MAP[i][j]["collapsed"] == False:
-                return False
-    return True
+            if MAP[i][j]["collapsed"] == '':
+                return ''
+    return 'A'
 
 def collapseMap(root, canvas, showInbetween):
     now = datetime.now()
@@ -108,7 +95,7 @@ def collapseMap(root, canvas, showInbetween):
         if not values:
             print(f"WARNING - contradiction occurred at position ({x},{y})")
             MAP[y][x]["values"] = -1
-            MAP[y][x]["collapsed"] = True
+            MAP[y][x]["collapsed"] = 'A'
             break
         collapseAt(x, y, random.choice(MAP[y][x]["values"]))
         if showInbetween:
@@ -193,42 +180,106 @@ def buildWindow():
     buildInterface(frame, root, canvas)
     return root
 
+def checkNeighbourCorners(a, b):
+    if a == '':
+        a = '___'
+    if b == '':
+        b = '___'
+    if a[-1] != b[0]:
+        print(f"WARNING - neighbours have mismatching corners: ([{a}]-[{b}])")
+
 def addAtlasSub(atlasImage, x, y, neighbours):
+    for i in range(len(neighbours) - 1):
+        checkNeighbourCorners(neighbours[i], neighbours[i + 1])
+    checkNeighbourCorners(neighbours[-1], neighbours[0])
     TILE_DEFS.append({"img": ImageTk.PhotoImage(atlasImage.crop((x * TILE_SIZE, y * TILE_SIZE, (x + 1) * TILE_SIZE, (y + 1) * TILE_SIZE))), "neighbours": neighbours})
+
+def addSub(imagePath, neighbours):
+    image = Image.open(imagePath).resize((TILE_SIZE, TILE_SIZE), resample=0)
+    TILE_DEFS.append({"img": ImageTk.PhotoImage(image), "neighbours": neighbours})
+
+def loadNonAtlas():
+    TILE_DEFS.clear()
+    addSub("img/ts1/tile_0.png", ['', '', '', ''])
+    addSub("img/ts1/tile_1.png", ['A', '', 'A', ''])
+    addSub("img/ts1/tile_2.png", ['', 'A', '', 'A'])
+    addSub("img/ts1/tile_3.png", ['A', 'A', '', ''])
+    addSub("img/ts1/tile_4.png", ['', 'A', 'A', ''])
+    addSub("img/ts1/tile_5.png", ['', '', 'A', 'A'])
+    addSub("img/ts1/tile_6.png", ['A', '', '', 'A'])
+    addSub("img/ts1/tile_7.png", ['A', 'A', 'A', 'A'])
+    addSub("img/ts1/tile_8.png", ['A', 'A', '', 'A'])
+    addSub("img/ts1/tile_9.png", ['A', 'A', 'A', ''])
+    addSub("img/ts1/tile_10.png", ['', 'A', 'A', 'A'])
+    addSub("img/ts1/tile_11.png", ['A', '', 'A', 'A'])
 
 def loadAtlas():
     ATLAS_TILES_X = 12
     ATLAS_TILES_Y = 4
     atlasImage = Image.open(ATLAS_PATH).resize((TILE_SIZE * ATLAS_TILES_X, TILE_SIZE * ATLAS_TILES_Y), resample=0)
     TILE_DEFS.clear()
-    addAtlasSub(atlasImage, 0, 0, [False, False, True, False])
-    addAtlasSub(atlasImage, 0, 1, [True, False, True, False])
-    addAtlasSub(atlasImage, 0, 2, [True, False, False, False])
-    addAtlasSub(atlasImage, 0, 3, [False, False, False, False])
+    addAtlasSub(atlasImage, 0, 0, ['', '', '_A_', ''])
+    addAtlasSub(atlasImage, 0, 1, ['_A_', '', '_A_', ''])
+    addAtlasSub(atlasImage, 0, 2, ['_A_', '', '', ''])
+    addAtlasSub(atlasImage, 0, 3, ['', '', '', ''])
     
-    addAtlasSub(atlasImage, 8, 0, [False, True, True, False])
-    addAtlasSub(atlasImage, 8, 1, [True, True, True, False])
-    addAtlasSub(atlasImage, 8, 3, [True, True, False, False])
-    addAtlasSub(atlasImage, 10, 0, [False, True, True, True])
-    addAtlasSub(atlasImage, 9, 2, [True, True, True, True])
-    addAtlasSub(atlasImage, 9, 3, [True, True, False, True])
-    addAtlasSub(atlasImage, 11, 0, [False, False, True, True])
-    addAtlasSub(atlasImage, 11, 2, [True, False, True, True])
-    addAtlasSub(atlasImage, 11, 3, [True, False, False, True])
+    addAtlasSub(atlasImage, 1, 0, ['', '_A_', '_A_', ''])
+    addAtlasSub(atlasImage, 1, 1, ['_A_', '_A_', '_A_', ''])
+    addAtlasSub(atlasImage, 1, 2, ['_A_', '_A_', '', ''])
+    addAtlasSub(atlasImage, 2, 0, ['', '_A_', '_A_', '_A_'])
+    addAtlasSub(atlasImage, 2, 1, ['_A_', '_A_', '_A_', '_A_'])
+    addAtlasSub(atlasImage, 2, 2, ['_A_', '_A_', '', '_A_'])
+    addAtlasSub(atlasImage, 3, 0, ['', '', '_A_', '_A_'])
+    addAtlasSub(atlasImage, 3, 1, ['_A_', '', '_A_', '_A_'])
+    addAtlasSub(atlasImage, 3, 2, ['_A_', '', '', '_A_'])
 
-    addAtlasSub(atlasImage, 1, 3, [False, True, False, False])
-    addAtlasSub(atlasImage, 2, 3, [False, True, False, True])
-    addAtlasSub(atlasImage, 3, 3, [False, False, False, True])
+    addAtlasSub(atlasImage, 1, 3, ['', '_A_', '', ''])
+    addAtlasSub(atlasImage, 2, 3, ['', '_A_', '', '_A_'])
+    addAtlasSub(atlasImage, 3, 3, ['', '', '', '_A_'])
 
-    addAtlasSub(atlasImage, 10, 1, [False, False, False, False])
+    addAtlasSub(atlasImage, 4, 0, ['AA_', '_A_', '_A_', '_AA'])
+    addAtlasSub(atlasImage, 4, 1, ['_A_', '_AA', 'AA_', ''])
+    addAtlasSub(atlasImage, 4, 2, ['_AA', 'AA_', '_A_', ''])
+    addAtlasSub(atlasImage, 4, 3, ['_A_', '_A_', '_AA', 'AA_'])
 
-def loadImages():
-    for i in range(len(TILE_DEFS)):
-        TILE_DEFS[i]["img"] = ImageTk.PhotoImage(Image.open(TILE_DEFS[i]["src"]).resize((TILE_SIZE, TILE_SIZE)))
+    addAtlasSub(atlasImage, 5, 0, ['', '_AA', 'AA_', '_A_'])
+    addAtlasSub(atlasImage, 5, 1, ['_AA', 'AAA', 'AAA', 'AA_'])
+    addAtlasSub(atlasImage, 5, 2, ['AAA', 'AAA', 'AA_', '_AA'])
+    addAtlasSub(atlasImage, 5, 3, ['_AA', 'AA_', '', '_A_'])
+
+    addAtlasSub(atlasImage, 6, 0, ['', '_A_', '_AA', 'AA_'])
+    addAtlasSub(atlasImage, 6, 1, ['AA_', '_AA', 'AAA', 'AAA'])
+    addAtlasSub(atlasImage, 6, 2, ['AAA', 'AA_', '_AA', 'AAA'])
+    addAtlasSub(atlasImage, 6, 3, ['AA_', '_A_', '', '_AA'])
+
+    addAtlasSub(atlasImage, 7, 0, ['_AA', 'AA_', '_A_', '_A_'])
+    addAtlasSub(atlasImage, 7, 1, ['_A_', '', '_AA', 'AA_'])
+    addAtlasSub(atlasImage, 7, 2, ['AA_', '', '_A_', '_AA'])
+    addAtlasSub(atlasImage, 7, 3, ['_A_', '_AA', 'AA_', '_A_'])
+
+    addAtlasSub(atlasImage, 8, 0, ['', '_AA', 'AA_', ''])
+    addAtlasSub(atlasImage, 8, 1, ['_AA', 'AAA', 'AA_', ''])
+    addAtlasSub(atlasImage, 8, 2, ['_AA', 'AAA', 'AA_', '_A_'])
+    addAtlasSub(atlasImage, 8, 3, ['_AA', 'AA_', '', ''])
+
+    addAtlasSub(atlasImage, 9, 0, ['_A_', '_AA', 'AAA', 'AA_'])
+    addAtlasSub(atlasImage, 9, 1, ['_AA', 'AA_', '_AA', 'AA_'])
+    addAtlasSub(atlasImage, 9, 2, ['AAA', 'AAA', 'AAA', 'AAA'])
+    addAtlasSub(atlasImage, 9, 3, ['AAA', 'AA_', '', '_AA'])
+
+    addAtlasSub(atlasImage, 10, 0, ['', '_AA', 'AAA', 'AA_'])
+    addAtlasSub(atlasImage, 10, 1, ['', '', '', ''])
+    addAtlasSub(atlasImage, 10, 2, ['AA_', '_AA', 'AA_', '_AA'])
+    addAtlasSub(atlasImage, 10, 3, ['AAA', 'AA_', '_A_', '_AA'])
+
+    addAtlasSub(atlasImage, 11, 0, ['', '', '_AA', 'AA_'])
+    addAtlasSub(atlasImage, 11, 1, ['AA_', '_A_', '_AA', 'AAA'])
+    addAtlasSub(atlasImage, 11, 2, ['AA_', '', '_AA', 'AAA'])
+    addAtlasSub(atlasImage, 11, 3, ['AA_', '', '', '_AA'])
 
 def main():
     window = buildWindow()
-    #loadImages()
+    #loadNonAtlas()
     loadAtlas()
     window.mainloop()
 
