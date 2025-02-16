@@ -6,14 +6,13 @@ from PIL import Image, ImageTk
 
 # direction idxs: 0 - UP; 1 - RIGHT; 2 - DOWN; 3 - LEFT
 
-ATLAS_PATH = "img/atlas_ts1/ts_dirt.png"
-
 TILE_DEFS = []
 
 MAP = []
 MAP_WIDTH = 20
 MAP_HEIGHT = 20
 TILE_SIZE = 32
+HALF_TILE = int(TILE_SIZE / 2)
 
 def resetMap():
     now = datetime.now()
@@ -188,99 +187,151 @@ def checkNeighbourCorners(a, b):
     if a[-1] != b[0]:
         print(f"WARNING - neighbours have mismatching corners: ([{a}]-[{b}])")
 
-def addAtlasSub(atlasImage, x, y, neighbours):
+def addAtlasSub(image, neighbours):
     for i in range(len(neighbours) - 1):
         checkNeighbourCorners(neighbours[i], neighbours[i + 1])
     checkNeighbourCorners(neighbours[-1], neighbours[0])
-    TILE_DEFS.append({"img": ImageTk.PhotoImage(atlasImage.crop((x * TILE_SIZE, y * TILE_SIZE, (x + 1) * TILE_SIZE, (y + 1) * TILE_SIZE))), "neighbours": neighbours})
+    TILE_DEFS.append({"img": ImageTk.PhotoImage(image), "neighbours": neighbours})
 
 def addSub(imagePath, neighbours):
     image = Image.open(imagePath).resize((TILE_SIZE, TILE_SIZE), resample=0)
     TILE_DEFS.append({"img": ImageTk.PhotoImage(image), "neighbours": neighbours})
 
-def loadNonAtlas():
+def loadNonAtlas(pathRoot):
     TILE_DEFS.clear()
-    addSub("img/ts1/tile_0.png", ['', '', '', ''])
-    addSub("img/ts1/tile_1.png", ['A', '', 'A', ''])
-    addSub("img/ts1/tile_2.png", ['', 'A', '', 'A'])
-    addSub("img/ts1/tile_3.png", ['A', 'A', '', ''])
-    addSub("img/ts1/tile_4.png", ['', 'A', 'A', ''])
-    addSub("img/ts1/tile_5.png", ['', '', 'A', 'A'])
-    addSub("img/ts1/tile_6.png", ['A', '', '', 'A'])
-    addSub("img/ts1/tile_7.png", ['A', 'A', 'A', 'A'])
-    addSub("img/ts1/tile_8.png", ['A', 'A', '', 'A'])
-    addSub("img/ts1/tile_9.png", ['A', 'A', 'A', ''])
-    addSub("img/ts1/tile_10.png", ['', 'A', 'A', 'A'])
-    addSub("img/ts1/tile_11.png", ['A', '', 'A', 'A'])
+    addSub(f"{pathRoot}tile_0.png", ['', '', '', ''])
+    addSub(f"{pathRoot}tile_1.png", ['A', '', 'A', ''])
+    addSub(f"{pathRoot}tile_2.png", ['', 'A', '', 'A'])
+    addSub(f"{pathRoot}tile_3.png", ['A', 'A', '', ''])
+    addSub(f"{pathRoot}tile_4.png", ['', 'A', 'A', ''])
+    addSub(f"{pathRoot}tile_5.png", ['', '', 'A', 'A'])
+    addSub(f"{pathRoot}tile_6.png", ['A', '', '', 'A'])
+    addSub(f"{pathRoot}tile_7.png", ['A', 'A', 'A', 'A'])
+    addSub(f"{pathRoot}tile_8.png", ['A', 'A', '', 'A'])
+    addSub(f"{pathRoot}tile_9.png", ['A', 'A', 'A', ''])
+    addSub(f"{pathRoot}tile_10.png", ['', 'A', 'A', 'A'])
+    addSub(f"{pathRoot}tile_11.png", ['A', '', 'A', 'A'])
 
-def loadAtlas():
+def getCropSize(x, y):
+    return (x * TILE_SIZE, y * TILE_SIZE, (x + 1) * TILE_SIZE, (y + 1) * TILE_SIZE)
+
+def loadAtlas(atlasPath):
+    TILE_DEFS.clear()
     ATLAS_TILES_X = 12
     ATLAS_TILES_Y = 4
-    atlasImage = Image.open(ATLAS_PATH).resize((TILE_SIZE * ATLAS_TILES_X, TILE_SIZE * ATLAS_TILES_Y), resample=0)
-    TILE_DEFS.clear()
-    addAtlasSub(atlasImage, 0, 0, ['', '', '_A_', ''])
-    addAtlasSub(atlasImage, 0, 1, ['_A_', '', '_A_', ''])
-    addAtlasSub(atlasImage, 0, 2, ['_A_', '', '', ''])
-    addAtlasSub(atlasImage, 0, 3, ['', '', '', ''])
+    atlasImage = Image.open(atlasPath).resize((TILE_SIZE * ATLAS_TILES_X, TILE_SIZE * ATLAS_TILES_Y), resample=0)
+    addAtlasSub(atlasImage.crop(getCropSize(0, 0)), ['', '', '_A_', ''])
+    addAtlasSub(atlasImage.crop(getCropSize(0, 1)), ['_A_', '', '_A_', ''])
+    addAtlasSub(atlasImage.crop(getCropSize(0, 2)), ['_A_', '', '', ''])
+    addAtlasSub(atlasImage.crop(getCropSize(0, 3)), ['', '', '', ''])
     
-    addAtlasSub(atlasImage, 1, 0, ['', '_A_', '_A_', ''])
-    addAtlasSub(atlasImage, 1, 1, ['_A_', '_A_', '_A_', ''])
-    addAtlasSub(atlasImage, 1, 2, ['_A_', '_A_', '', ''])
-    addAtlasSub(atlasImage, 2, 0, ['', '_A_', '_A_', '_A_'])
-    addAtlasSub(atlasImage, 2, 1, ['_A_', '_A_', '_A_', '_A_'])
-    addAtlasSub(atlasImage, 2, 2, ['_A_', '_A_', '', '_A_'])
-    addAtlasSub(atlasImage, 3, 0, ['', '', '_A_', '_A_'])
-    addAtlasSub(atlasImage, 3, 1, ['_A_', '', '_A_', '_A_'])
-    addAtlasSub(atlasImage, 3, 2, ['_A_', '', '', '_A_'])
+    addAtlasSub(atlasImage.crop(getCropSize(1, 0)), ['', '_A_', '_A_', ''])
+    addAtlasSub(atlasImage.crop(getCropSize(1, 1)), ['_A_', '_A_', '_A_', ''])
+    addAtlasSub(atlasImage.crop(getCropSize(1, 2)), ['_A_', '_A_', '', ''])
+    addAtlasSub(atlasImage.crop(getCropSize(2, 0)), ['', '_A_', '_A_', '_A_'])
+    addAtlasSub(atlasImage.crop(getCropSize(2, 1)), ['_A_', '_A_', '_A_', '_A_'])
+    addAtlasSub(atlasImage.crop(getCropSize(2, 2)), ['_A_', '_A_', '', '_A_'])
+    addAtlasSub(atlasImage.crop(getCropSize(3, 0)), ['', '', '_A_', '_A_'])
+    addAtlasSub(atlasImage.crop(getCropSize(3, 1)), ['_A_', '', '_A_', '_A_'])
+    addAtlasSub(atlasImage.crop(getCropSize(3, 2)), ['_A_', '', '', '_A_'])
 
-    addAtlasSub(atlasImage, 1, 3, ['', '_A_', '', ''])
-    addAtlasSub(atlasImage, 2, 3, ['', '_A_', '', '_A_'])
-    addAtlasSub(atlasImage, 3, 3, ['', '', '', '_A_'])
+    addAtlasSub(atlasImage.crop(getCropSize(1, 3)), ['', '_A_', '', ''])
+    addAtlasSub(atlasImage.crop(getCropSize(2, 3)), ['', '_A_', '', '_A_'])
+    addAtlasSub(atlasImage.crop(getCropSize(3, 3)), ['', '', '', '_A_'])
 
-    addAtlasSub(atlasImage, 4, 0, ['AA_', '_A_', '_A_', '_AA'])
-    addAtlasSub(atlasImage, 4, 1, ['_A_', '_AA', 'AA_', ''])
-    addAtlasSub(atlasImage, 4, 2, ['_AA', 'AA_', '_A_', ''])
-    addAtlasSub(atlasImage, 4, 3, ['_A_', '_A_', '_AA', 'AA_'])
+    addAtlasSub(atlasImage.crop(getCropSize(4, 0)), ['AA_', '_A_', '_A_', '_AA'])
+    addAtlasSub(atlasImage.crop(getCropSize(4, 1)), ['_A_', '_AA', 'AA_', ''])
+    addAtlasSub(atlasImage.crop(getCropSize(4, 2)), ['_AA', 'AA_', '_A_', ''])
+    addAtlasSub(atlasImage.crop(getCropSize(4, 3)), ['_A_', '_A_', '_AA', 'AA_'])
 
-    addAtlasSub(atlasImage, 5, 0, ['', '_AA', 'AA_', '_A_'])
-    addAtlasSub(atlasImage, 5, 1, ['_AA', 'AAA', 'AAA', 'AA_'])
-    addAtlasSub(atlasImage, 5, 2, ['AAA', 'AAA', 'AA_', '_AA'])
-    addAtlasSub(atlasImage, 5, 3, ['_AA', 'AA_', '', '_A_'])
+    addAtlasSub(atlasImage.crop(getCropSize(5, 0)), ['', '_AA', 'AA_', '_A_'])
+    addAtlasSub(atlasImage.crop(getCropSize(5, 1)), ['_AA', 'AAA', 'AAA', 'AA_'])
+    addAtlasSub(atlasImage.crop(getCropSize(5, 2)), ['AAA', 'AAA', 'AA_', '_AA'])
+    addAtlasSub(atlasImage.crop(getCropSize(5, 3)), ['_AA', 'AA_', '', '_A_'])
 
-    addAtlasSub(atlasImage, 6, 0, ['', '_A_', '_AA', 'AA_'])
-    addAtlasSub(atlasImage, 6, 1, ['AA_', '_AA', 'AAA', 'AAA'])
-    addAtlasSub(atlasImage, 6, 2, ['AAA', 'AA_', '_AA', 'AAA'])
-    addAtlasSub(atlasImage, 6, 3, ['AA_', '_A_', '', '_AA'])
+    addAtlasSub(atlasImage.crop(getCropSize(6, 0)), ['', '_A_', '_AA', 'AA_'])
+    addAtlasSub(atlasImage.crop(getCropSize(6, 1)), ['AA_', '_AA', 'AAA', 'AAA'])
+    addAtlasSub(atlasImage.crop(getCropSize(6, 2)), ['AAA', 'AA_', '_AA', 'AAA'])
+    addAtlasSub(atlasImage.crop(getCropSize(6, 3)), ['AA_', '_A_', '', '_AA'])
 
-    addAtlasSub(atlasImage, 7, 0, ['_AA', 'AA_', '_A_', '_A_'])
-    addAtlasSub(atlasImage, 7, 1, ['_A_', '', '_AA', 'AA_'])
-    addAtlasSub(atlasImage, 7, 2, ['AA_', '', '_A_', '_AA'])
-    addAtlasSub(atlasImage, 7, 3, ['_A_', '_AA', 'AA_', '_A_'])
+    addAtlasSub(atlasImage.crop(getCropSize(7, 0)), ['_AA', 'AA_', '_A_', '_A_'])
+    addAtlasSub(atlasImage.crop(getCropSize(7, 1)), ['_A_', '', '_AA', 'AA_'])
+    addAtlasSub(atlasImage.crop(getCropSize(7, 2)), ['AA_', '', '_A_', '_AA'])
+    addAtlasSub(atlasImage.crop(getCropSize(7, 3)), ['_A_', '_AA', 'AA_', '_A_'])
 
-    addAtlasSub(atlasImage, 8, 0, ['', '_AA', 'AA_', ''])
-    addAtlasSub(atlasImage, 8, 1, ['_AA', 'AAA', 'AA_', ''])
-    addAtlasSub(atlasImage, 8, 2, ['_AA', 'AAA', 'AA_', '_A_'])
-    addAtlasSub(atlasImage, 8, 3, ['_AA', 'AA_', '', ''])
+    addAtlasSub(atlasImage.crop(getCropSize(8, 0)), ['', '_AA', 'AA_', ''])
+    addAtlasSub(atlasImage.crop(getCropSize(8, 1)), ['_AA', 'AAA', 'AA_', ''])
+    addAtlasSub(atlasImage.crop(getCropSize(8, 2)), ['_AA', 'AAA', 'AA_', '_A_'])
+    addAtlasSub(atlasImage.crop(getCropSize(8, 3)), ['_AA', 'AA_', '', ''])
 
-    addAtlasSub(atlasImage, 9, 0, ['_A_', '_AA', 'AAA', 'AA_'])
-    addAtlasSub(atlasImage, 9, 1, ['_AA', 'AA_', '_AA', 'AA_'])
-    addAtlasSub(atlasImage, 9, 2, ['AAA', 'AAA', 'AAA', 'AAA'])
-    addAtlasSub(atlasImage, 9, 3, ['AAA', 'AA_', '', '_AA'])
+    addAtlasSub(atlasImage.crop(getCropSize(9, 0)), ['_A_', '_AA', 'AAA', 'AA_'])
+    addAtlasSub(atlasImage.crop(getCropSize(9, 1)), ['_AA', 'AA_', '_AA', 'AA_'])
+    addAtlasSub(atlasImage.crop(getCropSize(9, 2)), ['AAA', 'AAA', 'AAA', 'AAA'])
+    addAtlasSub(atlasImage.crop(getCropSize(9, 3)), ['AAA', 'AA_', '', '_AA'])
 
-    addAtlasSub(atlasImage, 10, 0, ['', '_AA', 'AAA', 'AA_'])
-    addAtlasSub(atlasImage, 10, 1, ['', '', '', ''])
-    addAtlasSub(atlasImage, 10, 2, ['AA_', '_AA', 'AA_', '_AA'])
-    addAtlasSub(atlasImage, 10, 3, ['AAA', 'AA_', '_A_', '_AA'])
+    addAtlasSub(atlasImage.crop(getCropSize(10, 0)), ['', '_AA', 'AAA', 'AA_'])
+    addAtlasSub(atlasImage.crop(getCropSize(10, 1)), ['', '', '', ''])
+    addAtlasSub(atlasImage.crop(getCropSize(10, 2)), ['AA_', '_AA', 'AA_', '_AA'])
+    addAtlasSub(atlasImage.crop(getCropSize(10, 3)), ['AAA', 'AA_', '_A_', '_AA'])
 
-    addAtlasSub(atlasImage, 11, 0, ['', '', '_AA', 'AA_'])
-    addAtlasSub(atlasImage, 11, 1, ['AA_', '_A_', '_AA', 'AAA'])
-    addAtlasSub(atlasImage, 11, 2, ['AA_', '', '_AA', 'AAA'])
-    addAtlasSub(atlasImage, 11, 3, ['AA_', '', '', '_AA'])
+    addAtlasSub(atlasImage.crop(getCropSize(11, 0)), ['', '', '_AA', 'AA_'])
+    addAtlasSub(atlasImage.crop(getCropSize(11, 1)), ['AA_', '_A_', '_AA', 'AAA'])
+    addAtlasSub(atlasImage.crop(getCropSize(11, 2)), ['AA_', '', '_AA', 'AAA'])
+    addAtlasSub(atlasImage.crop(getCropSize(11, 3)), ['AA_', '', '', '_AA'])
+
+def createAtlasMetaSub(tl, tr, bl, br):
+    sub = Image.new("RGB", (TILE_SIZE, TILE_SIZE))
+    sub.paste(tl, (0, 0))
+    sub.paste(tr, (HALF_TILE, 0))
+    sub.paste(bl, (0, HALF_TILE))
+    sub.paste(br, (HALF_TILE, HALF_TILE))
+    return sub
+
+
+def loadAtlasMeta(atlasMetaPath):
+    #TILE_DEFS.clear()
+    ATLAS_META_TILES_X = 5
+    ATLAS_META_TILES_Y = 1
+    atlasMetaImage = Image.open(atlasMetaPath).resize((TILE_SIZE * ATLAS_META_TILES_X, TILE_SIZE * ATLAS_META_TILES_Y), resample=0)
+
+    tlcurve = atlasMetaImage.crop((0, 0, HALF_TILE, HALF_TILE))
+    trcurve = atlasMetaImage.crop((HALF_TILE, 0, HALF_TILE * 2, HALF_TILE))
+    blcurve = atlasMetaImage.crop((0, HALF_TILE, HALF_TILE, HALF_TILE * 2))
+    brcurve = atlasMetaImage.crop((HALF_TILE, HALF_TILE, HALF_TILE * 2, HALF_TILE * 2))
+    tlver = atlasMetaImage.crop((HALF_TILE * 2, 0, HALF_TILE * 3, HALF_TILE))
+    trver = atlasMetaImage.crop((HALF_TILE * 3, 0, HALF_TILE * 4, HALF_TILE))
+    blver = atlasMetaImage.crop((HALF_TILE * 2, HALF_TILE, HALF_TILE * 3, HALF_TILE * 2))
+    brver = atlasMetaImage.crop((HALF_TILE * 3, HALF_TILE, HALF_TILE * 4, HALF_TILE * 2))
+    tlhor = atlasMetaImage.crop((HALF_TILE * 4, 0, HALF_TILE * 5, HALF_TILE))
+    trhor = atlasMetaImage.crop((HALF_TILE * 5, 0, HALF_TILE * 6, HALF_TILE))
+    blhor = atlasMetaImage.crop((HALF_TILE * 4, HALF_TILE, HALF_TILE * 5, HALF_TILE * 2))
+    brhor = atlasMetaImage.crop((HALF_TILE * 5, HALF_TILE, HALF_TILE * 6, HALF_TILE * 2))
+    tlcor = atlasMetaImage.crop((HALF_TILE * 6, 0, HALF_TILE * 7, HALF_TILE))
+    trcor = atlasMetaImage.crop((HALF_TILE * 7, 0, HALF_TILE * 8, HALF_TILE))
+    blcor = atlasMetaImage.crop((HALF_TILE * 6, HALF_TILE, HALF_TILE * 7, HALF_TILE * 2))
+    brcor = atlasMetaImage.crop((HALF_TILE * 7, HALF_TILE, HALF_TILE * 8, HALF_TILE * 2))
+    empty = atlasMetaImage.crop((HALF_TILE * 8, 0, HALF_TILE * 10, TILE_SIZE))
+
+    addAtlasSub(createAtlasMetaSub(tlcurve, trcurve, blver, brver), ['', '', '_A_', ''])
+    addAtlasSub(createAtlasMetaSub(tlver, trver, blver, brver), ['_A_', '', '_A_', ''])
+    addAtlasSub(createAtlasMetaSub(tlver, trver, blcurve, brcurve), ['_A_', '', '', ''])
+    addAtlasSub(createAtlasMetaSub(tlcurve, trcurve, blcurve, brcurve), ['', '', '', ''])
+
+    addAtlasSub(createAtlasMetaSub(tlcurve, trhor, blver, brcor), ['', '_A_', '_A_', ''])
+    addAtlasSub(createAtlasMetaSub(tlver, trcor, blver, brcor), ['_A_', '_A_', '_A_', ''])
+    addAtlasSub(createAtlasMetaSub(tlver, trcor, blcurve, brhor), ['_A_', '_A_', '', ''])
+    addAtlasSub(createAtlasMetaSub(tlhor, trhor, blcor, brcor), ['', '_A_', '_A_', '_A_'])
+    addAtlasSub(createAtlasMetaSub(tlcor, trcor, blcor, brcor), ['_A_', '_A_', '_A_', '_A_'])
+    addAtlasSub(createAtlasMetaSub(tlcor, trcor, blhor, brhor), ['_A_', '_A_', '', '_A_'])
+    addAtlasSub(createAtlasMetaSub(tlhor, trcurve, blcor, brver), ['', '', '_A_', '_A_'])
+    addAtlasSub(createAtlasMetaSub(tlcor, trver, blcor, brver), ['_A_', '', '_A_', '_A_'])
+    addAtlasSub(createAtlasMetaSub(tlcor, trver, blhor, brcurve), ['_A_', '', '', '_A_'])
 
 def main():
     window = buildWindow()
-    #loadNonAtlas()
-    loadAtlas()
+    #loadNonAtlas("img/ts/")
+    #loadAtlas("img/atlas/ts_dirt.png")
+    loadAtlasMeta("img/atlasmeta/ts_beach.png")
     window.mainloop()
 
 if __name__ == '__main__':
