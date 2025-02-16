@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from datetime import datetime
 import random
 import tkinter as tk
 
@@ -24,7 +25,8 @@ MAP_WIDTH = 40
 MAP_HEIGHT = 40
 TILE_SIZE = 16
 
-def resetMap(root, canvas):
+def resetMap():
+    now = datetime.now()
     MAP.clear()
     for _ in range(MAP_HEIGHT):
         mapRow = []
@@ -33,8 +35,10 @@ def resetMap(root, canvas):
         MAP.append(mapRow)
     
     collapseAt(random.randrange(MAP_WIDTH), random.randrange(MAP_HEIGHT), random.randrange(len(TILE_DEFS)))
-    print("map has been reset")
-    updateCanvas(root, canvas)
+
+    elapsedTime = datetime.now() - now
+    print(f"map has been reset - {elapsedTime}")
+    return elapsedTime
 
 def collapseAt(x, y, value):
     MAP[y][x]["values"] = value
@@ -87,8 +91,9 @@ def isMapCollapsed():
                 return False
     return True
 
-def collapseMap(root, canvas):
+def collapseMap(root, canvas, showInbetween):
     print("map collapsing started")
+    now = datetime.now()
 
     while(not isMapCollapsed()):
         pos = findLeastValuesPos()
@@ -98,28 +103,63 @@ def collapseMap(root, canvas):
         x = pos[0]
         y = pos[1]
         collapseAt(x, y, random.choice(MAP[y][x]["values"]))
-        updateCanvasTile(canvas, y, x)
-        root.update()
+        if showInbetween:
+            updateCanvasTile(canvas, y, x)
+            root.update()
+    
+    elapsedTime = datetime.now() - now
+    print(f"map has collapsed - {elapsedTime}")
+    return elapsedTime
 
-    print("map has collapsed")
+def benchmarkMap(root, canvas, showInbetween, benchmarkRuns):
+    if not benchmarkRuns.isdigit():
+        print("ERROR - must provide benchmark runs as integer")
+        return
+    
+    print(f"benchmarking map collapsing ({benchmarkRuns} times)")
+    now = datetime.now()
+    totalRuntime = datetime.now()
+    for i in range(int(benchmarkRuns)):
+        totalRuntime += resetMap()
+        if showInbetween:
+            updateCanvas(root, canvas)
+        totalRuntime += collapseMap(root, canvas, showInbetween)
+        updateCanvas(root, canvas)
+    print(f"benchmarking finished - {totalRuntime - now}")
 
-def buildButtons(frame, root, canvas):
-    resetButton = tk.Button(frame, text="Reset", width=10, command=lambda: resetMap(root, canvas))
-    resetButton.pack()
-    collapseButton = tk.Button(frame, text="Collapse", width=10, command=lambda: collapseMap(root, canvas))
+def benchmarkButtonAction(root, canvas, showInbetween, benchmarkRuns):
+    benchmarkMap(root, canvas, showInbetween, benchmarkRuns)
+
+def collapseButtonAction(root, canvas, showInbetween):
+    updateCanvas(root, canvas)
+    resetMap()
+    updateCanvas(root, canvas)
+    collapseMap(root, canvas, showInbetween)
+    updateCanvas(root, canvas)
+
+def buildInterface(frame, root, canvas):
+    showInbetweenVar = tk.IntVar()
+    showInbetweenCb = tk.Checkbutton(frame, text="Show inbetween", variable=showInbetweenVar)
+    showInbetweenCb.pack()
+    collapseButton = tk.Button(frame, text="Collapse", width=20, command=lambda: collapseButtonAction(root, canvas, showInbetweenVar.get()))
     collapseButton.pack()
+    benchmarkRunsVar = tk.StringVar(value="5")
+    benchmarkRunsEntry = tk.Entry(frame, textvariable=benchmarkRunsVar)
+    benchmarkRunsEntry.pack()
+    benchmarkButton = tk.Button(frame, text=f"Benchmark", width=20, command=lambda: benchmarkButtonAction(root, canvas, showInbetweenVar.get(), benchmarkRunsVar.get()))
+    benchmarkButton.pack()
 
 def updateCanvasTile(canvas, i, j):
     image = TILE_DEFS[MAP[i][j]["values"]]["img"]
     canvas.create_image(j * TILE_SIZE, i * TILE_SIZE, image=image, anchor=tk.NW)
 
 def updateCanvas(root, canvas):
-    for i in range(MAP_HEIGHT):
-        for j in range(MAP_WIDTH):
-            if not MAP[i][j]["collapsed"]:
-                canvas.create_rectangle(j * TILE_SIZE, i * TILE_SIZE, ((j + 1) * TILE_SIZE) - 1, ((i + 1) * TILE_SIZE) - 1, fill="gray", outline="white")
-            else:
-                updateCanvasTile(canvas, i, j)
+    canvas.delete("all")
+    if MAP:
+        for i in range(MAP_HEIGHT):
+            for j in range(MAP_WIDTH):
+                if MAP[i][j]["collapsed"]:
+                    updateCanvasTile(canvas, i, j)
             
     root.update()
 
@@ -133,7 +173,7 @@ def buildWindow():
     frame = tk.Frame(root, relief="flat", borderwidth=10)
     frame.pack()
     canvas = buildCanvas(frame)
-    buildButtons(frame, root, canvas)
+    buildInterface(frame, root, canvas)
     return root
 
 def loadImages():
