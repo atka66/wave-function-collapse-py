@@ -2,27 +2,28 @@
 from datetime import datetime
 import random
 import tkinter as tk
+from PIL import Image, ImageTk
 
 # direction idxs: 0 - UP; 1 - RIGHT; 2 - DOWN; 3 - LEFT
 
 TILE_DEFS = [
-    {"src": "img/tile_0.png", "neighbours": [False, False, False, False]},
-    {"src": "img/tile_1.png", "neighbours": [True, False, True, False]},
-    {"src": "img/tile_2.png", "neighbours": [False, True, False, True]},
-    {"src": "img/tile_3.png", "neighbours": [True, True, False, False]},
-    {"src": "img/tile_4.png", "neighbours": [False, True, True, False]},
-    {"src": "img/tile_5.png", "neighbours": [False, False, True, True]},
-    {"src": "img/tile_6.png", "neighbours": [True, False, False, True]},
-    {"src": "img/tile_7.png", "neighbours": [True, True, True, True]},
-    {"src": "img/tile_8.png", "neighbours": [True, True, False, True]},
-    {"src": "img/tile_9.png", "neighbours": [True, True, True, False]},
-    {"src": "img/tile_10.png", "neighbours": [False, True, True, True]},
-    {"src": "img/tile_11.png", "neighbours": [True, False, True, True]},
+    {"src": "img/ts1/tile_0.png", "neighbours": [False, False, False, False]},
+    {"src": "img/ts1/tile_1.png", "neighbours": [True, False, True, False]},
+    {"src": "img/ts1/tile_2.png", "neighbours": [False, True, False, True]},
+    {"src": "img/ts1/tile_3.png", "neighbours": [True, True, False, False]},
+    {"src": "img/ts1/tile_4.png", "neighbours": [False, True, True, False]},
+    {"src": "img/ts1/tile_5.png", "neighbours": [False, False, True, True]},
+    {"src": "img/ts1/tile_6.png", "neighbours": [True, False, False, True]},
+    {"src": "img/ts1/tile_7.png", "neighbours": [True, True, True, True]},
+    {"src": "img/ts1/tile_8.png", "neighbours": [True, True, False, True]},
+    {"src": "img/ts1/tile_9.png", "neighbours": [True, True, True, False]},
+    {"src": "img/ts1/tile_10.png", "neighbours": [False, True, True, True]},
+    {"src": "img/ts1/tile_11.png", "neighbours": [True, False, True, True]},
 ]
 
 MAP = []
-MAP_WIDTH = 40
-MAP_HEIGHT = 40
+MAP_WIDTH = 30
+MAP_HEIGHT = 30
 TILE_SIZE = 16
 
 def resetMap():
@@ -37,7 +38,7 @@ def resetMap():
     collapseAt(random.randrange(MAP_WIDTH), random.randrange(MAP_HEIGHT), random.randrange(len(TILE_DEFS)))
 
     elapsedTime = datetime.now() - now
-    print(f"map has been reset - {elapsedTime}")
+    #print(f"map has been reset - {elapsedTime}")
     return elapsedTime
 
 def collapseAt(x, y, value):
@@ -92,7 +93,6 @@ def isMapCollapsed():
     return True
 
 def collapseMap(root, canvas, showInbetween):
-    print("map collapsing started")
     now = datetime.now()
 
     while(not isMapCollapsed()):
@@ -102,6 +102,12 @@ def collapseMap(root, canvas, showInbetween):
             break
         x = pos[0]
         y = pos[1]
+        values = MAP[y][x]["values"]
+        if not values:
+            print(f"WARNING - contradiction occurred at position ({x},{y})")
+            MAP[y][x]["values"] = -1
+            MAP[y][x]["collapsed"] = True
+            break
         collapseAt(x, y, random.choice(MAP[y][x]["values"]))
         if showInbetween:
             updateCanvasTile(canvas, y, x)
@@ -111,7 +117,7 @@ def collapseMap(root, canvas, showInbetween):
     print(f"map has collapsed - {elapsedTime}")
     return elapsedTime
 
-def benchmarkMap(root, canvas, showInbetween, benchmarkRuns):
+def benchmarkMap(root, canvas, showInbetween, showIndividual, benchmarkRuns):
     if not benchmarkRuns.isdigit():
         print("ERROR - must provide benchmark runs as integer")
         return
@@ -124,11 +130,13 @@ def benchmarkMap(root, canvas, showInbetween, benchmarkRuns):
         if showInbetween:
             updateCanvas(root, canvas)
         totalRuntime += collapseMap(root, canvas, showInbetween)
-        updateCanvas(root, canvas)
+        if showIndividual:
+            updateCanvas(root, canvas)
     print(f"benchmarking finished - {totalRuntime - now}")
 
-def benchmarkButtonAction(root, canvas, showInbetween, benchmarkRuns):
-    benchmarkMap(root, canvas, showInbetween, benchmarkRuns)
+def benchmarkButtonAction(root, canvas, showInbetween, showIndividual, benchmarkRuns):
+    benchmarkMap(root, canvas, showInbetween, showIndividual, benchmarkRuns)
+    updateCanvas(root, canvas)
 
 def collapseButtonAction(root, canvas, showInbetween):
     updateCanvas(root, canvas)
@@ -146,12 +154,19 @@ def buildInterface(frame, root, canvas):
     benchmarkRunsVar = tk.StringVar(value="5")
     benchmarkRunsEntry = tk.Entry(frame, textvariable=benchmarkRunsVar)
     benchmarkRunsEntry.pack()
-    benchmarkButton = tk.Button(frame, text=f"Benchmark", width=20, command=lambda: benchmarkButtonAction(root, canvas, showInbetweenVar.get(), benchmarkRunsVar.get()))
+    showIndividualVar = tk.IntVar()
+    showIndividualCb = tk.Checkbutton(frame, text="Show individual", variable=showIndividualVar)
+    showIndividualCb.pack()
+    benchmarkButton = tk.Button(frame, text=f"Benchmark", width=20, command=lambda: benchmarkButtonAction(root, canvas, showInbetweenVar.get(), showIndividualVar.get(), benchmarkRunsVar.get()))
     benchmarkButton.pack()
 
 def updateCanvasTile(canvas, i, j):
-    image = TILE_DEFS[MAP[i][j]["values"]]["img"]
-    canvas.create_image(j * TILE_SIZE, i * TILE_SIZE, image=image, anchor=tk.NW)
+    value = MAP[i][j]["values"]
+    if value < 0:
+        canvas.create_rectangle(j * TILE_SIZE, i * TILE_SIZE, (j + 1) * TILE_SIZE, (i + 1) * TILE_SIZE, fill="red")
+    else:
+        image = TILE_DEFS[value]["img"]
+        canvas.create_image(j * TILE_SIZE, i * TILE_SIZE, image=image, anchor=tk.NW)
 
 def updateCanvas(root, canvas):
     canvas.delete("all")
@@ -178,7 +193,7 @@ def buildWindow():
 
 def loadImages():
     for i in range(len(TILE_DEFS)):
-        TILE_DEFS[i]["img"] = tk.PhotoImage(file=TILE_DEFS[i]["src"])
+        TILE_DEFS[i]["img"] = ImageTk.PhotoImage(Image.open(TILE_DEFS[i]["src"]).resize((TILE_SIZE, TILE_SIZE)))
 
 def main():
     window = buildWindow()
