@@ -6,6 +6,8 @@ from PIL import Image, ImageTk
 
 # direction idxs: 0 - UP; 1 - RIGHT; 2 - DOWN; 3 - LEFT
 
+ATLAS_PATH = "img/atlas_ts1/ts_dirt.png"
+
 TILE_DEFS = [
     {"src": "img/ts1/tile_0.png", "neighbours": [False, False, False, False]},
     {"src": "img/ts1/tile_1.png", "neighbours": [True, False, True, False]},
@@ -22,8 +24,8 @@ TILE_DEFS = [
 ]
 
 MAP = []
-MAP_WIDTH = 30
-MAP_HEIGHT = 30
+MAP_WIDTH = 20
+MAP_HEIGHT = 20
 TILE_SIZE = 16
 
 def resetMap():
@@ -146,7 +148,7 @@ def collapseButtonAction(root, canvas, showInbetween):
     updateCanvas(root, canvas)
 
 def buildInterface(frame, root, canvas):
-    showInbetweenVar = tk.IntVar()
+    showInbetweenVar = tk.IntVar(value=1)
     showInbetweenCb = tk.Checkbutton(frame, text="Show inbetween", variable=showInbetweenVar)
     showInbetweenCb.pack()
     collapseButton = tk.Button(frame, text="Collapse", width=20, command=lambda: collapseButtonAction(root, canvas, showInbetweenVar.get()))
@@ -154,7 +156,7 @@ def buildInterface(frame, root, canvas):
     benchmarkRunsVar = tk.StringVar(value="5")
     benchmarkRunsEntry = tk.Entry(frame, textvariable=benchmarkRunsVar)
     benchmarkRunsEntry.pack()
-    showIndividualVar = tk.IntVar()
+    showIndividualVar = tk.IntVar(value=1)
     showIndividualCb = tk.Checkbutton(frame, text="Show individual", variable=showIndividualVar)
     showIndividualCb.pack()
     benchmarkButton = tk.Button(frame, text=f"Benchmark", width=20, command=lambda: benchmarkButtonAction(root, canvas, showInbetweenVar.get(), showIndividualVar.get(), benchmarkRunsVar.get()))
@@ -191,13 +193,43 @@ def buildWindow():
     buildInterface(frame, root, canvas)
     return root
 
+def addAtlasSub(atlasImage, x, y, neighbours):
+    TILE_DEFS.append({"img": ImageTk.PhotoImage(atlasImage.crop((x * TILE_SIZE, y * TILE_SIZE, (x + 1) * TILE_SIZE, (y + 1) * TILE_SIZE))), "neighbours": neighbours})
+
+def loadAtlas():
+    ATLAS_TILES_X = 12
+    ATLAS_TILES_Y = 4
+    atlasImage = Image.open(ATLAS_PATH).resize((TILE_SIZE * ATLAS_TILES_X, TILE_SIZE * ATLAS_TILES_Y), resample=0)
+    TILE_DEFS.clear()
+    addAtlasSub(atlasImage, 0, 0, [False, False, True, False])
+    addAtlasSub(atlasImage, 0, 1, [True, False, True, False])
+    addAtlasSub(atlasImage, 0, 2, [True, False, False, False])
+    addAtlasSub(atlasImage, 0, 3, [False, False, False, False])
+    
+    addAtlasSub(atlasImage, 8, 0, [False, True, True, False])
+    addAtlasSub(atlasImage, 8, 1, [True, True, True, False])
+    addAtlasSub(atlasImage, 8, 3, [True, True, False, False])
+    addAtlasSub(atlasImage, 10, 0, [False, True, True, True])
+    addAtlasSub(atlasImage, 9, 2, [True, True, True, True])
+    addAtlasSub(atlasImage, 9, 3, [True, True, False, True])
+    addAtlasSub(atlasImage, 11, 0, [False, False, True, True])
+    addAtlasSub(atlasImage, 11, 2, [True, False, True, True])
+    addAtlasSub(atlasImage, 11, 3, [True, False, False, True])
+
+    addAtlasSub(atlasImage, 1, 3, [False, True, False, False])
+    addAtlasSub(atlasImage, 2, 3, [False, True, False, True])
+    addAtlasSub(atlasImage, 3, 3, [False, False, False, True])
+
+    addAtlasSub(atlasImage, 10, 1, [False, False, False, False])
+
 def loadImages():
     for i in range(len(TILE_DEFS)):
         TILE_DEFS[i]["img"] = ImageTk.PhotoImage(Image.open(TILE_DEFS[i]["src"]).resize((TILE_SIZE, TILE_SIZE)))
 
 def main():
     window = buildWindow()
-    loadImages()
+    #loadImages()
+    loadAtlas()
     window.mainloop()
 
 if __name__ == '__main__':
