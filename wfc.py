@@ -9,8 +9,8 @@ from PIL import Image, ImageTk
 TILE_DEFS = []
 
 MAP = []
-MAP_WIDTH = 20
-MAP_HEIGHT = 20
+MAP_WIDTH = 50
+MAP_HEIGHT = 24
 TILE_SIZE = 32
 HALF_TILE = int(TILE_SIZE / 2)
 
@@ -28,6 +28,37 @@ def resetMap():
     elapsedTime = datetime.now() - now
     #print(f"map has been reset - {elapsedTime}")
     return elapsedTime
+
+def uncollapseAround(x, y):
+    if y - 1 >= 0 and MAP[y - 1][x]["collapsed"]:
+        uncollapseAt(x, y - 1)
+    if y + 1 < MAP_HEIGHT and MAP[y + 1][x]["collapsed"]:
+        uncollapseAt(x, y + 1)
+    if x + 1 < MAP_WIDTH and MAP[y][x + 1]["collapsed"]:
+        uncollapseAt(x + 1, y)
+    if x - 1 >= 0 and MAP[y][x - 1]["collapsed"]:
+        uncollapseAt(x - 1, y)
+    uncollapseAt(x, y)
+
+def uncollapseAt(x, y):
+    MAP[y][x]["values"] = []
+    MAP[y][x]["collapsed"] = ''
+
+    if y - 1 >= 0 and MAP[y - 1][x]["collapsed"]:
+        expectedAbove = TILE_DEFS[MAP[y - 1][x]["values"]]["neighbours"][0][::-1]
+        MAP[y][x]["values"] += [idx for idx, e in enumerate(TILE_DEFS) if e["neighbours"][2] == expectedAbove]
+    
+    if y + 1 < MAP_HEIGHT and MAP[y + 1][x]["collapsed"]:
+        expectedBelow = TILE_DEFS[MAP[y + 1][x]["values"]]["neighbours"][2][::-1]
+        MAP[y][x]["values"] += [idx for idx, e in enumerate(TILE_DEFS) if e["neighbours"][0] == expectedBelow]
+    
+    if x + 1 < MAP_WIDTH and MAP[y][x + 1]["collapsed"]:
+        expectedRight = TILE_DEFS[MAP[y][x + 1]["values"]]["neighbours"][1][::-1]
+        MAP[y][x]["values"] += [idx for idx, e in enumerate(TILE_DEFS) if e["neighbours"][3] == expectedRight]
+    
+    if x - 1 >= 0 and MAP[y][x - 1]["collapsed"]:
+        expectedLeft = TILE_DEFS[MAP[y][x - 1]["values"]]["neighbours"][3][::-1]
+        MAP[y][x]["values"] += [idx for idx, e in enumerate(TILE_DEFS) if e["neighbours"][1] == expectedLeft]
 
 def collapseAt(x, y, value):
     MAP[y][x]["values"] = value
@@ -92,10 +123,11 @@ def collapseMap(root, canvas, showInbetween):
         y = pos[1]
         values = MAP[y][x]["values"]
         if not values:
+            uncollapseAround(x, y)
             print(f"WARNING - contradiction occurred at position ({x},{y})")
-            MAP[y][x]["values"] = -1
-            MAP[y][x]["collapsed"] = 'A'
-            break
+            #MAP[y][x]["values"] = -1
+            #MAP[y][x]["collapsed"] = 'A'
+            #break
         collapseAt(x, y, random.choice(MAP[y][x]["values"]))
         if showInbetween:
             updateCanvasTile(canvas, y, x)
@@ -288,9 +320,9 @@ def createAtlasMetaSub(tl, tr, bl, br):
     return sub
 
 
-def loadAtlasMeta(atlasMetaPath):
+def loadAtlasMeta(atlasMetaPath, inward, outward):
     #TILE_DEFS.clear()
-    ATLAS_META_TILES_X = 5
+    ATLAS_META_TILES_X = 6
     ATLAS_META_TILES_Y = 1
     atlasMetaImage = Image.open(atlasMetaPath).resize((TILE_SIZE * ATLAS_META_TILES_X, TILE_SIZE * ATLAS_META_TILES_Y), resample=0)
 
@@ -310,28 +342,71 @@ def loadAtlasMeta(atlasMetaPath):
     trcor = atlasMetaImage.crop((HALF_TILE * 7, 0, HALF_TILE * 8, HALF_TILE))
     blcor = atlasMetaImage.crop((HALF_TILE * 6, HALF_TILE, HALF_TILE * 7, HALF_TILE * 2))
     brcor = atlasMetaImage.crop((HALF_TILE * 7, HALF_TILE, HALF_TILE * 8, HALF_TILE * 2))
-    empty = atlasMetaImage.crop((HALF_TILE * 8, 0, HALF_TILE * 10, TILE_SIZE))
+    tlemp = atlasMetaImage.crop((HALF_TILE * 8, 0, HALF_TILE * 9, HALF_TILE))
+    tremp = atlasMetaImage.crop((HALF_TILE * 9, 0, HALF_TILE * 10, HALF_TILE))
+    blemp = atlasMetaImage.crop((HALF_TILE * 8, HALF_TILE, HALF_TILE * 9, HALF_TILE * 2))
+    bremp = atlasMetaImage.crop((HALF_TILE * 9, HALF_TILE, HALF_TILE * 10, HALF_TILE * 2))
+    tlfil = atlasMetaImage.crop((HALF_TILE * 10, 0, HALF_TILE * 11, HALF_TILE))
+    trfil = atlasMetaImage.crop((HALF_TILE * 11, 0, HALF_TILE * 12, HALF_TILE))
+    blfil = atlasMetaImage.crop((HALF_TILE * 10, HALF_TILE, HALF_TILE * 11, HALF_TILE * 2))
+    brfil = atlasMetaImage.crop((HALF_TILE * 11, HALF_TILE, HALF_TILE * 12, HALF_TILE * 2))
 
-    addAtlasSub(createAtlasMetaSub(tlcurve, trcurve, blver, brver), ['', '', '_A_', ''])
-    addAtlasSub(createAtlasMetaSub(tlver, trver, blver, brver), ['_A_', '', '_A_', ''])
-    addAtlasSub(createAtlasMetaSub(tlver, trver, blcurve, brcurve), ['_A_', '', '', ''])
-    addAtlasSub(createAtlasMetaSub(tlcurve, trcurve, blcurve, brcurve), ['', '', '', ''])
-
-    addAtlasSub(createAtlasMetaSub(tlcurve, trhor, blver, brcor), ['', '_A_', '_A_', ''])
-    addAtlasSub(createAtlasMetaSub(tlver, trcor, blver, brcor), ['_A_', '_A_', '_A_', ''])
-    addAtlasSub(createAtlasMetaSub(tlver, trcor, blcurve, brhor), ['_A_', '_A_', '', ''])
-    addAtlasSub(createAtlasMetaSub(tlhor, trhor, blcor, brcor), ['', '_A_', '_A_', '_A_'])
-    addAtlasSub(createAtlasMetaSub(tlcor, trcor, blcor, brcor), ['_A_', '_A_', '_A_', '_A_'])
-    addAtlasSub(createAtlasMetaSub(tlcor, trcor, blhor, brhor), ['_A_', '_A_', '', '_A_'])
-    addAtlasSub(createAtlasMetaSub(tlhor, trcurve, blcor, brver), ['', '', '_A_', '_A_'])
-    addAtlasSub(createAtlasMetaSub(tlcor, trver, blcor, brver), ['_A_', '', '_A_', '_A_'])
-    addAtlasSub(createAtlasMetaSub(tlcor, trver, blhor, brcurve), ['_A_', '', '', '_A_'])
+    addAtlasSub(createAtlasMetaSub(tlcurve, trcurve, blver, brver), [f'{outward}{outward}{outward}', f'{outward}{outward}{outward}', f'{outward}{inward}{outward}', f'{outward}{outward}{outward}'])
+    addAtlasSub(createAtlasMetaSub(tlver, trver, blver, brver), [f'{outward}{inward}{outward}', f'{outward}{outward}{outward}', f'{outward}{inward}{outward}', f'{outward}{outward}{outward}'])
+    addAtlasSub(createAtlasMetaSub(tlver, trver, blcurve, brcurve), [f'{outward}{inward}{outward}', f'{outward}{outward}{outward}', f'{outward}{outward}{outward}', f'{outward}{outward}{outward}'])
+    addAtlasSub(createAtlasMetaSub(tlcurve, trcurve, blcurve, brcurve), [f'{outward}{outward}{outward}', f'{outward}{outward}{outward}', f'{outward}{outward}{outward}', f'{outward}{outward}{outward}'])
+    addAtlasSub(createAtlasMetaSub(tlcurve, trhor, blver, brcor), [f'{outward}{outward}{outward}', f'{outward}{inward}{outward}', f'{outward}{inward}{outward}', f'{outward}{outward}{outward}'])
+    addAtlasSub(createAtlasMetaSub(tlver, trcor, blver, brcor), [f'{outward}{inward}{outward}', f'{outward}{inward}{outward}', f'{outward}{inward}{outward}', f'{outward}{outward}{outward}'])
+    addAtlasSub(createAtlasMetaSub(tlver, trcor, blcurve, brhor), [f'{outward}{inward}{outward}', f'{outward}{inward}{outward}', f'{outward}{outward}{outward}', f'{outward}{outward}{outward}'])
+    addAtlasSub(createAtlasMetaSub(tlhor, trhor, blcor, brcor), [f'{outward}{outward}{outward}', f'{outward}{inward}{outward}', f'{outward}{inward}{outward}', f'{outward}{inward}{outward}'])
+    addAtlasSub(createAtlasMetaSub(tlcor, trcor, blcor, brcor), [f'{outward}{inward}{outward}', f'{outward}{inward}{outward}', f'{outward}{inward}{outward}', f'{outward}{inward}{outward}'])
+    addAtlasSub(createAtlasMetaSub(tlcor, trcor, blhor, brhor), [f'{outward}{inward}{outward}', f'{outward}{inward}{outward}', f'{outward}{outward}{outward}', f'{outward}{inward}{outward}'])
+    addAtlasSub(createAtlasMetaSub(tlhor, trcurve, blcor, brver), [f'{outward}{outward}{outward}', f'{outward}{outward}{outward}', f'{outward}{inward}{outward}', f'{outward}{inward}{outward}'])
+    addAtlasSub(createAtlasMetaSub(tlcor, trver, blcor, brver), [f'{outward}{inward}{outward}', f'{outward}{outward}{outward}', f'{outward}{inward}{outward}', f'{outward}{inward}{outward}'])
+    addAtlasSub(createAtlasMetaSub(tlcor, trver, blhor, brcurve), [f'{outward}{inward}{outward}', f'{outward}{outward}{outward}', f'{outward}{outward}{outward}', f'{outward}{inward}{outward}'])
+    addAtlasSub(createAtlasMetaSub(tlcurve, trhor, blcurve, brhor), [f'{outward}{outward}{outward}', f'{outward}{inward}{outward}', f'{outward}{outward}{outward}', f'{outward}{outward}{outward}'])
+    addAtlasSub(createAtlasMetaSub(tlhor, trhor, blhor, brhor), [f'{outward}{outward}{outward}', f'{outward}{inward}{outward}', f'{outward}{outward}{outward}', f'{outward}{inward}{outward}'])
+    addAtlasSub(createAtlasMetaSub(tlhor, trcurve, blhor, brcurve), [f'{outward}{outward}{outward}', f'{outward}{outward}{outward}', f'{outward}{outward}{outward}', f'{outward}{inward}{outward}'])
+    addAtlasSub(createAtlasMetaSub(tlemp, trcor, blcor, brcor), [f'{inward}{inward}{outward}', f'{outward}{inward}{outward}', f'{outward}{inward}{outward}', f'{outward}{inward}{inward}'])
+    addAtlasSub(createAtlasMetaSub(tlver, trcor, blver, bremp), [f'{outward}{inward}{outward}', f'{outward}{inward}{inward}', f'{inward}{inward}{outward}', f'{outward}{outward}{outward}'])
+    addAtlasSub(createAtlasMetaSub(tlver, tremp, blver, brcor), [f'{outward}{inward}{inward}', f'{inward}{inward}{outward}', f'{outward}{inward}{outward}', f'{outward}{outward}{outward}'])
+    addAtlasSub(createAtlasMetaSub(tlcor, trcor, blemp, brcor), [f'{outward}{inward}{outward}', f'{outward}{inward}{outward}', f'{outward}{inward}{inward}', f'{inward}{inward}{outward}'])
+    addAtlasSub(createAtlasMetaSub(tlhor, trhor, blcor, bremp), [f'{outward}{outward}{outward}', f'{outward}{inward}{inward}', f'{inward}{inward}{outward}', f'{outward}{inward}{outward}'])
+    addAtlasSub(createAtlasMetaSub(tlcor, tremp, blemp, bremp), [f'{outward}{inward}{inward}', f'{inward}{inward}{inward}', f'{inward}{inward}{inward}', f'{inward}{inward}{outward}'])
+    addAtlasSub(createAtlasMetaSub(tlemp, tremp, blcor, bremp), [f'{inward}{inward}{inward}', f'{inward}{inward}{inward}', f'{inward}{inward}{outward}', f'{outward}{inward}{inward}'])
+    addAtlasSub(createAtlasMetaSub(tlcor, tremp, blhor, brhor), [f'{outward}{inward}{inward}', f'{inward}{inward}{outward}', f'{outward}{outward}{outward}', f'{outward}{inward}{outward}'])
+    addAtlasSub(createAtlasMetaSub(tlhor, trhor, blemp, brcor), [f'{outward}{outward}{outward}', f'{outward}{inward}{outward}', f'{outward}{inward}{inward}', f'{inward}{inward}{outward}'])
+    addAtlasSub(createAtlasMetaSub(tlemp, trcor, blemp, bremp), [f'{inward}{inward}{outward}', f'{outward}{inward}{inward}', f'{inward}{inward}{inward}', f'{inward}{inward}{inward}'])
+    addAtlasSub(createAtlasMetaSub(tlemp, tremp, blemp, brcor), [f'{inward}{inward}{inward}', f'{inward}{inward}{outward}', f'{outward}{inward}{inward}', f'{inward}{inward}{inward}'])
+    addAtlasSub(createAtlasMetaSub(tlemp, trcor, blhor, brhor), [f'{inward}{inward}{outward}', f'{outward}{inward}{outward}', f'{outward}{outward}{outward}', f'{outward}{inward}{inward}'])
+    addAtlasSub(createAtlasMetaSub(tlcor, tremp, blcor, brcor), [f'{outward}{inward}{inward}', f'{inward}{inward}{outward}', f'{outward}{inward}{outward}', f'{outward}{inward}{outward}'])
+    addAtlasSub(createAtlasMetaSub(tlcor, trver, blemp, brver), [f'{outward}{inward}{outward}', f'{outward}{outward}{outward}', f'{outward}{inward}{inward}', f'{inward}{inward}{outward}'])
+    addAtlasSub(createAtlasMetaSub(tlemp, trver, blcor, brver), [f'{inward}{inward}{outward}', f'{outward}{outward}{outward}', f'{outward}{inward}{outward}', f'{outward}{inward}{inward}'])
+    addAtlasSub(createAtlasMetaSub(tlcor, trcor, blcor, bremp), [f'{outward}{inward}{outward}', f'{outward}{inward}{inward}', f'{inward}{inward}{outward}', f'{outward}{inward}{outward}'])
+    addAtlasSub(createAtlasMetaSub(tlcurve, trhor, blver, bremp), [f'{outward}{outward}{outward}', f'{outward}{inward}{inward}', f'{inward}{inward}{outward}', f'{outward}{outward}{outward}'])
+    addAtlasSub(createAtlasMetaSub(tlver, tremp, blver, bremp), [f'{outward}{inward}{inward}', f'{inward}{inward}{inward}', f'{inward}{inward}{outward}', f'{outward}{outward}{outward}'])
+    addAtlasSub(createAtlasMetaSub(tlcor, tremp, blcor, bremp), [f'{outward}{inward}{inward}', f'{inward}{inward}{inward}', f'{inward}{inward}{outward}', f'{outward}{inward}{outward}'])
+    addAtlasSub(createAtlasMetaSub(tlver, tremp, blcurve, brhor), [f'{outward}{inward}{inward}', f'{inward}{inward}{outward}', f'{outward}{outward}{outward}', f'{outward}{outward}{outward}'])
+    addAtlasSub(createAtlasMetaSub(tlcor, trcor, blemp, bremp), [f'{outward}{inward}{outward}', f'{outward}{inward}{inward}', f'{inward}{inward}{inward}', f'{inward}{inward}{outward}'])
+    addAtlasSub(createAtlasMetaSub(tlcor, tremp, blemp, brcor), [f'{outward}{inward}{inward}', f'{inward}{inward}{outward}', f'{outward}{inward}{inward}', f'{inward}{inward}{outward}'])
+    addAtlasSub(createAtlasMetaSub(tlemp, tremp, blemp, bremp), [f'{inward}{inward}{inward}', f'{inward}{inward}{inward}', f'{inward}{inward}{inward}', f'{inward}{inward}{inward}'])
+    addAtlasSub(createAtlasMetaSub(tlemp, tremp, blhor, brhor), [f'{inward}{inward}{inward}', f'{inward}{inward}{outward}', f'{outward}{outward}{outward}', f'{outward}{inward}{inward}'])
+    addAtlasSub(createAtlasMetaSub(tlhor, trhor, blemp, bremp), [f'{outward}{outward}{outward}', f'{outward}{inward}{inward}', f'{inward}{inward}{inward}', f'{inward}{inward}{outward}'])
+    addAtlasSub(createAtlasMetaSub(tlfil, trfil, blfil, brfil), [f'{outward}{outward}{outward}', f'{outward}{outward}{outward}', f'{outward}{outward}{outward}', f'{outward}{outward}{outward}'])
+    addAtlasSub(createAtlasMetaSub(tlemp, trcor, blcor, bremp), [f'{inward}{inward}{outward}', f'{outward}{inward}{inward}', f'{inward}{inward}{outward}', f'{outward}{inward}{inward}'])
+    addAtlasSub(createAtlasMetaSub(tlemp, tremp, blcor, brcor), [f'{inward}{inward}{inward}', f'{inward}{inward}{outward}', f'{outward}{inward}{outward}', f'{outward}{inward}{inward}'])
+    addAtlasSub(createAtlasMetaSub(tlhor, trcurve, blemp, brver), [f'{outward}{outward}{outward}', f'{outward}{outward}{outward}', f'{outward}{inward}{inward}', f'{inward}{inward}{outward}'])
+    addAtlasSub(createAtlasMetaSub(tlemp, trcor, blemp, brcor), [f'{inward}{inward}{outward}', f'{outward}{inward}{outward}', f'{outward}{inward}{inward}', f'{inward}{inward}{inward}'])
+    addAtlasSub(createAtlasMetaSub(tlemp, trver, blemp, brver), [f'{inward}{inward}{outward}', f'{outward}{outward}{outward}', f'{outward}{inward}{inward}', f'{inward}{inward}{inward}'])
+    addAtlasSub(createAtlasMetaSub(tlemp, trver, blhor, brcurve), [f'{inward}{inward}{outward}', f'{outward}{outward}{outward}', f'{outward}{outward}{outward}', f'{outward}{inward}{inward}'])
 
 def main():
     window = buildWindow()
     #loadNonAtlas("img/ts/")
     #loadAtlas("img/atlas/ts_dirt.png")
-    loadAtlasMeta("img/atlasmeta/ts_beach.png")
+    loadAtlasMeta("img/atlasmeta/ts_beach.png", "W", "B")
+    #loadAtlasMeta("img/atlasmeta/ts_field.png", "B", "F")
+    #loadAtlasMeta("img/atlasmeta/ts_snow.png", "S", "F")
     window.mainloop()
 
 if __name__ == '__main__':
