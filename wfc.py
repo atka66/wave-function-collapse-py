@@ -10,9 +10,9 @@ from importer import *
 TILE_DEFS = []
 
 MAP = []
-MAP_WIDTH = 30
-MAP_HEIGHT = 20
-TILE_SIZE = 32
+MAP_WIDTH = 60
+MAP_HEIGHT = 40
+TILE_SIZE = 16
 
 def resetMap():
     now = datetime.now()
@@ -184,9 +184,10 @@ def main():
     window = buildWindow()
     #TILE_DEFS.extend(loadNonAtlas("img/ts/", TILE_SIZE))
     #TILE_DEFS.extend(loadAtlas("img/atlas/ts_dirt.png", TILE_SIZE))
-    TILE_DEFS.extend(loadAtlasMeta("img/atlasmeta/ts_beach.png", TILE_SIZE, "W", "B"))
+    #TILE_DEFS.extend(loadAtlasMeta("img/atlasmeta/ts_beach.png", TILE_SIZE, "W", "B"))
     #TILE_DEFS.extend(loadAtlasMeta("img/atlasmeta/ts_field.png", TILE_SIZE, "B", "F"))
     #TILE_DEFS.extend(loadAtlasMeta("img/atlasmeta/ts_snow.png", TILE_SIZE, "S", "F"))
+    TILE_DEFS.extend(loadAtlasDungeon("img/atlasdungeon/ad_1.png", TILE_SIZE))
     window.mainloop()
 
 if __name__ == '__main__':

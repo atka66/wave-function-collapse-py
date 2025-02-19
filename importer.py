@@ -10,9 +10,9 @@ def checkNeighbourCorners(a, b):
         print(f"WARNING - neighbours have mismatching corners: ([{a}]-[{b}])")
 
 def addAtlasSub(image, neighbours):
-    for i in range(len(neighbours) - 1):
-        checkNeighbourCorners(neighbours[i], neighbours[i + 1])
-    checkNeighbourCorners(neighbours[-1], neighbours[0])
+    #for i in range(len(neighbours) - 1):
+    #    checkNeighbourCorners(neighbours[i], neighbours[i + 1])
+    #checkNeighbourCorners(neighbours[-1], neighbours[0])
     return {"img": ImageTk.PhotoImage(image), "neighbours": neighbours}
 
 def addSub(imagePath, tileSize, neighbours):
@@ -195,4 +195,27 @@ def loadAtlasMeta(atlasMetaPath, tileSize, inward, outward):
     tileDefs.append(addAtlasSub(createAtlasMetaSub(tileSize, tlemp, trcor, blemp, brcor), [f'{inward}{inward}{outward}', f'{outward}{inward}{outward}', f'{outward}{inward}{inward}', f'{inward}{inward}{inward}']))
     tileDefs.append(addAtlasSub(createAtlasMetaSub(tileSize, tlemp, trver, blemp, brver), [f'{inward}{inward}{outward}', f'{outward}{outward}{outward}', f'{outward}{inward}{inward}', f'{inward}{inward}{inward}']))
     tileDefs.append(addAtlasSub(createAtlasMetaSub(tileSize, tlemp, trver, blhor, brcurve), [f'{inward}{inward}{outward}', f'{outward}{outward}{outward}', f'{outward}{outward}{outward}', f'{outward}{inward}{inward}']))
+    return tileDefs
+
+def loadAtlasDungeon(atlasPath, tileSize):
+    tileDefs = []
+    atlasImage = Image.open(atlasPath).resize((tileSize * 4, tileSize * 4), resample=0)
+    tileDefs.append(addAtlasSub(atlasImage.crop(getCropSize(0, 0, tileSize)), ['', '', '', '']))
+    tileDefs.append(addAtlasSub(atlasImage.crop(getCropSize(1, 0, tileSize)), ['', 'A', '', 'A']))
+    tileDefs.append(addAtlasSub(atlasImage.crop(getCropSize(2, 0, tileSize)), ['A', '', 'A', '']))
+
+    #tileDefs.append(addAtlasSub(atlasImage.crop(getCropSize(0, 1, tileSize)), ['A', '', '', '']))
+    #tileDefs.append(addAtlasSub(atlasImage.crop(getCropSize(1, 1, tileSize)), ['', 'A', '', '']))
+    #tileDefs.append(addAtlasSub(atlasImage.crop(getCropSize(2, 1, tileSize)), ['', '', 'A', '']))
+    #tileDefs.append(addAtlasSub(atlasImage.crop(getCropSize(3, 1, tileSize)), ['', '', '', 'A']))
+
+    tileDefs.append(addAtlasSub(atlasImage.crop(getCropSize(0, 2, tileSize)), ['A', 'A', '', '']))
+    tileDefs.append(addAtlasSub(atlasImage.crop(getCropSize(1, 2, tileSize)), ['', 'A', 'A', '']))
+    tileDefs.append(addAtlasSub(atlasImage.crop(getCropSize(2, 2, tileSize)), ['', '', 'A', 'A']))
+    tileDefs.append(addAtlasSub(atlasImage.crop(getCropSize(3, 2, tileSize)), ['A', '', '', 'A']))
+
+    tileDefs.append(addAtlasSub(atlasImage.crop(getCropSize(0, 3, tileSize)), ['A', 'A', 'A', '']))
+    tileDefs.append(addAtlasSub(atlasImage.crop(getCropSize(1, 3, tileSize)), ['', 'A', 'A', 'A']))
+    tileDefs.append(addAtlasSub(atlasImage.crop(getCropSize(2, 3, tileSize)), ['A', '', 'A', 'A']))
+    tileDefs.append(addAtlasSub(atlasImage.crop(getCropSize(3, 3, tileSize)), ['A', 'A', '', 'A']))
     return tileDefs
